@@ -17,6 +17,8 @@ vi.mock('./api.service', () => ({
     createMovie: vi.fn(),
     updateMovie: vi.fn(),
     deleteMovie: vi.fn(),
+    toggleFavorite: vi.fn(),
+    rateMovie: vi.fn(),
   }
 }));
 
@@ -39,9 +41,9 @@ import type { Movie, MoviePayload } from './types';
 
 // ── Datos de prueba ──────────────────────────────────────────────
 const mockMovies: Movie[] = [
-  { id: '1', title: 'Inception', director: 'Christopher Nolan', year: 2010 },
-  { id: '2', title: 'The Matrix', director: 'Wachowski Sisters', year: 1999 },
-  { id: '3', title: 'Pulp Fiction', director: 'Quentin Tarantino', year: 1994 },
+  { id: '1', title: 'Inception', director: 'Christopher Nolan', year: 2010, isFavorite: false, rating: 0 },
+  { id: '2', title: 'The Matrix', director: 'Wachowski Sisters', year: 1999, isFavorite: true, rating: 5 },
+  { id: '3', title: 'Pulp Fiction', director: 'Quentin Tarantino', year: 1994, isFavorite: false, rating: 4 },
 ];
 
 const newPayload: MoviePayload = {
@@ -218,6 +220,97 @@ describe('Movies Store (Svelte 5 Runes)', () => {
 
       expect(ok).toBe(false);
       expect(moviesStore.error).toBe('Forbidden');
+      expect(moviesStore.mutating).toBe(false);
+    });
+  });
+
+  // ─── toggleFavorite ────────────────────────────────────────────
+  describe('toggleFavorite()', () => {
+    it('debería cambiar isFavorite de false a true', async () => {
+      vi.mocked(api.getMovies).mockResolvedValue([...mockMovies]);
+      await moviesStore.loadMovies();
+
+      const movieConFavoriteTrue = { ...mockMovies[0], isFavorite: true };
+      vi.mocked(api.toggleFavorite).mockResolvedValue(movieConFavoriteTrue);
+
+      const ok = await moviesStore.toggleFavorite('1');
+
+      expect(api.toggleFavorite).toHaveBeenCalledWith('1');
+      expect(ok).toBe(true);
+      const movie = moviesStore.movies.find(m => m.id === '1');
+      expect(movie?.isFavorite).toBe(true);
+    });
+
+    it('debería cambiar isFavorite de true a false', async () => {
+      vi.mocked(api.getMovies).mockResolvedValue([...mockMovies]);
+      await moviesStore.loadMovies();
+
+      const movieConFavoriteFalse = { ...mockMovies[1], isFavorite: false };
+      vi.mocked(api.toggleFavorite).mockResolvedValue(movieConFavoriteFalse);
+
+      const ok = await moviesStore.toggleFavorite('2');
+
+      expect(api.toggleFavorite).toHaveBeenCalledWith('2');
+      expect(ok).toBe(true);
+      const movie = moviesStore.movies.find(m => m.id === '2');
+      expect(movie?.isFavorite).toBe(false);
+    });
+
+    it('debería manejar error al hacer toggle de favorito', async () => {
+      vi.mocked(api.toggleFavorite).mockRejectedValue(new Error('Not found'));
+
+      const ok = await moviesStore.toggleFavorite('999');
+
+      expect(ok).toBe(false);
+      expect(moviesStore.error).toBe('Not found');
+      expect(moviesStore.mutating).toBe(false);
+    });
+
+    it('debería mantener mutating=false después de completarse', async () => {
+      vi.mocked(api.toggleFavorite).mockResolvedValue(mockMovies[0]);
+
+      await moviesStore.toggleFavorite('1');
+
+      expect(moviesStore.mutating).toBe(false);
+    });
+  });
+
+  // ─── updateRating ─────────────────────────────────────────────
+  describe('updateRating()', () => {
+    it('debería actualizar el rating de una película', async () => {
+      vi.mocked(api.getMovies).mockResolvedValue([...mockMovies]);
+      await moviesStore.loadMovies();
+
+      const movieConRating3 = { ...mockMovies[0], rating: 3 };
+      vi.mocked(api.rateMovie).mockResolvedValue(movieConRating3);
+
+      const ok = await moviesStore.updateRating('1', 3);
+
+      expect(api.rateMovie).toHaveBeenCalledWith('1', 3);
+      expect(ok).toBe(true);
+      const movie = moviesStore.movies.find(m => m.id === '1');
+      expect(movie?.rating).toBe(3);
+    });
+
+    it('debería aceptar rating entre 0 y 5', async () => {
+      vi.mocked(api.getMovies).mockResolvedValue([...mockMovies]);
+      await moviesStore.loadMovies();
+
+      const movieConRating5 = { ...mockMovies[0], rating: 5 };
+      vi.mocked(api.rateMovie).mockResolvedValue(movieConRating5);
+
+      await moviesStore.updateRating('1', 5);
+
+      expect(api.rateMovie).toHaveBeenCalledWith('1', 5);
+    });
+
+    it('debería manejar error al actualizar el rating', async () => {
+      vi.mocked(api.rateMovie).mockRejectedValue(new Error('Invalid rating'));
+
+      const ok = await moviesStore.updateRating('999', 10);
+
+      expect(ok).toBe(false);
+      expect(moviesStore.error).toBe('Invalid rating');
       expect(moviesStore.mutating).toBe(false);
     });
   });

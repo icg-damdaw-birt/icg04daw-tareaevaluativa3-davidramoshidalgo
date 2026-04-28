@@ -83,6 +83,38 @@ export const moviesStore = {
     }
   },
 
+  // Marcar/desmarcar como favorito
+  async toggleFavorite(id: string): Promise<boolean> {
+    mutating = true;
+    error = null;
+    try {
+      const updatedMovie = await api.toggleFavorite(id);
+      movies = movies.map(m => m.id === id ? updatedMovie : m);
+      return true;
+    } catch (err) {
+      error = err instanceof Error ? err.message : 'Error al actualizar favorito';
+      return false;
+    } finally {
+      mutating = false;
+    }
+  },
+
+  // Actualizar rating
+  async updateRating(id: string, rating: number): Promise<boolean> {
+    mutating = true;
+    error = null;
+    try {
+      const updatedMovie = await api.rateMovie(id, rating);
+      movies = movies.map(m => m.id === id ? updatedMovie : m);
+      return true;
+    } catch (err) {
+      error = err instanceof Error ? err.message : 'Error al actualizar rating';
+      return false;
+    } finally {
+      mutating = false;
+    }
+  },
+
   // Limpiar estado completo
   reset() {
     movies = [];

@@ -6,12 +6,14 @@
     movie,
     showActions = true,
     ondelete,
-    onedit
+    onedit,
+    onfavorite
   }: {
     movie: Movie;
     showActions?: boolean;
     ondelete?: (id: string) => void;
     onedit?: (movie: Movie) => void;
+    onfavorite?: (id: string) => void;
   } = $props();
 
   // Handlers: ejecutan callbacks del padre directamente
@@ -21,6 +23,10 @@
 
   function handleEdit() {
     onedit?.(movie);
+  }
+
+  function handleFavorite() {
+    onfavorite?.(movie.id);
   }
 </script>
 
@@ -50,21 +56,32 @@
     </div>
 
     {#if showActions}
-      <div class="mt-3 flex flex-col gap-2 sm:flex-row">
+      <div class="mt-3 flex flex-col gap-2">
         <button
           type="button"
-          class="w-full rounded border border-slate-300 px-3 py-2 text-slate-700 transition hover:bg-slate-50"
-          onclick={handleEdit}
+          class="w-full rounded px-3 py-2 transition {movie.isFavorite 
+            ? 'border border-yellow-400 bg-yellow-50 text-yellow-600 hover:bg-yellow-100' 
+            : 'border border-slate-300 text-slate-700 hover:bg-slate-50'}"
+          onclick={handleFavorite}
         >
-          Editar
+          {movie.isFavorite ? '★' : '☆'} Favorito
         </button>
-        <button
-          type="button"
-          class="w-full rounded border border-red-500 px-3 py-2 text-red-600 transition hover:bg-red-50"
-          onclick={handleDelete}
-        >
-          Eliminar
-        </button>
+        <div class="flex gap-2 sm:flex-row">
+          <button
+            type="button"
+            class="w-full rounded border border-slate-300 px-3 py-2 text-slate-700 transition hover:bg-slate-50"
+            onclick={handleEdit}
+          >
+            Editar
+          </button>
+          <button
+            type="button"
+            class="w-full rounded border border-red-500 px-3 py-2 text-red-600 transition hover:bg-red-50"
+            onclick={handleDelete}
+          >
+            Eliminar
+          </button>
+        </div>
       </div>
     {/if}
   </div>
