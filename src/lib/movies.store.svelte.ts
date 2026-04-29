@@ -99,16 +99,38 @@ export const moviesStore = {
     }
   },
 
-  // Actualizar rating
-  async updateRating(id: string, rating: number): Promise<boolean> {
+  // Calificar película (0-5 estrellas) con optimistic update
+  async rateMovie(id: string, rating: number): Promise<boolean> {
+    // Validar rating entre 0 y 5
+    if (typeof rating !== 'number' || rating < 0 || rating > 5) {
+      error = 'El rating debe ser un número entre 0 y 5';
+      return false;
+    }
+
+    // Optimistic update: guardar valor anterior por si falla
+    const movieIndex = movies.findIndex(m => m.id === id);
+    if (movieIndex === -1) {
+      error = 'Película no encontrada';
+      return false;
+    }
+
+    const previousRating = movies[movieIndex].rating;
+
     mutating = true;
     error = null;
     try {
+      // Actualizar inmediatamente en la UI (optimistic)
+      movies[movieIndex].rating = rating;
+
+      // Llamar al backend
       const updatedMovie = await api.rateMovie(id, rating);
+      // Sincronizar con respuesta del servidor
       movies = movies.map(m => m.id === id ? updatedMovie : m);
       return true;
     } catch (err) {
-      error = err instanceof Error ? err.message : 'Error al actualizar rating';
+      // Rollback: restaurar valor anterior si falla
+      movies[movieIndex].rating = previousRating;
+      error = err instanceof Error ? err.message : 'Error al calificar película';
       return false;
     } finally {
       mutating = false;
